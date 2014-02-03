@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright 2013 Abram Hindle
+# Copyright 2013 Eric Lam, Abram Hindle
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,14 +33,65 @@ class HTTPRequest(object):
         self.body = body
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
+    client_socket = socket.socket();
+
+    # Get the Host, Port, and Path which will be stored in 'data' in that order
+    def get_host_port(self,url):
+        data = []
+        print "SDLFJSDF"
+        if ':' in url:
+            url = url.split("/")
+            print url
+            data.append(url[2].split(":")[0])
+            data.append(int(url[2].split(":")[1]))
+            path = ""
+            for x in range(3, len(url)):
+                path += "/" + url[x]
+
+            data.append(path)
+        else:
+            url = url.split("/")
+            print url
+            data.append(url[2])
+            data.append(80)
+            path = ""
+            for x in range(3, len(url)):
+                path += "/" + url[x]
+            data.append(path)
+        
+        print "DATA IS HERE"
+        print data
+
+        return data
 
     def connect(self, host, port):
         # use sockets!
+        #create an INET, STREAMing socket
+        try:
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error:
+            print 'Failed to create socket'
+            sys.exit()
+            
+        print 'Socket Created'
+        
+        try:
+            remote_ip = socket.gethostbyname( host )
+ 
+        except socket.gaierror:
+            #could not resolve
+            print 'Hostname could not be resolved. Exiting'
+            sys.exit()
+         
+        #Connect to remote server
+        self.client_socket.connect((remote_ip , port))
+        print 'Socket Connected to ' + host + ' on ip ' + remote_ip
+        
         return None
 
     def get_code(self, data):
-        return None
+        data = data.split(' ')
+        return int(data[1])
 
     def get_headers(self,data):
         return None
@@ -61,13 +112,47 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        data = self.get_host_port(url)
+        self.connect(data[0], data[1])
+        
+        request = "GET /" + data[0] + data[2] + " HTTP/1.1\r\nHost: "+data[0]+":"+str(data[1])+"\r\nContent-Type: text/html\r\n\r\n"
+
+        self.client_socket.send(request)
+
+        body = self.recvall(self.client_socket)
+
+        code = self.get_code(body)
+
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        data = self.get_host_port(url)
+        self.connect(data[0], data[1])
+
+        request = "POST " + data[2] + " HTTP/1.1\r\nHost:"+data[0]+":"+str(data[1])+"\r\nConnection: keep-alive\r\nContent-Type: application/x-www-form-urlencoded\r\n"
+
+        if(args != None):
+            args = urllib.urlencode(args)
+            request += 'Content-Length: %s \r\n' % (len(args))
+            request += "\r\n"  
+            request += args + "\r\n"
+
+        request += "\r\n"
+
+        #print "REQUEST IS HERE" 
+        #print request
+
+        self.client_socket.send(request)
+        body = self.recvall(self.client_socket)
+
+        #print "BODY IS HERE"
+        #print body
+
+        code = self.get_code(body)
+
+        body = body.splitlines()
+        body = body[len(body)-1]
+
         return HTTPRequest(code, body)
 
     def command(self, url, command="GET", args=None):
