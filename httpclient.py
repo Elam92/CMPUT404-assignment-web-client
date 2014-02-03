@@ -39,9 +39,9 @@ class HTTPClient(object):
     def get_host_port(self,url):
         data = []
         print "SDLFJSDF"
-        if ':' in url:
-            url = url.split("/")
-            print url
+        url = url.split("/")
+        if ':' in url[2]:
+            #print url
             data.append(url[2].split(":")[0])
             data.append(int(url[2].split(":")[1]))
             path = ""
@@ -50,8 +50,7 @@ class HTTPClient(object):
 
             data.append(path)
         else:
-            url = url.split("/")
-            print url
+            #print url
             data.append(url[2])
             data.append(80)
             path = ""
@@ -59,11 +58,12 @@ class HTTPClient(object):
                 path += "/" + url[x]
             data.append(path)
         
-        print "DATA IS HERE"
-        print data
+        #print "DATA IS HERE"
+        #print data
 
         return data
 
+    # Connect to the server
     def connect(self, host, port):
         # use sockets!
         #create an INET, STREAMing socket
@@ -77,7 +77,6 @@ class HTTPClient(object):
         
         try:
             remote_ip = socket.gethostbyname( host )
- 
         except socket.gaierror:
             #could not resolve
             print 'Hostname could not be resolved. Exiting'
@@ -89,15 +88,10 @@ class HTTPClient(object):
         
         return None
 
+    # Get the HTTP Status Code
     def get_code(self, data):
         data = data.split(' ')
         return int(data[1])
-
-    def get_headers(self,data):
-        return None
-
-    def get_body(self, data):
-        return None
 
     # read everything from the socket
     def recvall(self, sock):
@@ -115,12 +109,26 @@ class HTTPClient(object):
         data = self.get_host_port(url)
         self.connect(data[0], data[1])
         
-        request = "GET /" + data[0] + data[2] + " HTTP/1.1\r\nHost: "+data[0]+":"+str(data[1])+"\r\nContent-Type: text/html\r\n\r\n"
+        request = "GET " + data[2] + " HTTP/1.1\r\nHost: "+data[0]+":"+str(data[1])+"\r\nConnection: keep-alive\r\nContent-Type: text/html\r\n"
+
+        if(args != None):
+            args = urllib.urlencode(args)
+            request += 'Content-Length: %s \r\n' % (len(args))
+            request += "\r\n"  
+            request += args + "\r\n"
+
+        request += "\r\n"
+
+        #print "GET REQUEST IS HERE"
+        #print request
 
         self.client_socket.send(request)
 
         body = self.recvall(self.client_socket)
 
+        #print "GET BODY IS HERE"
+        #print body
+        
         code = self.get_code(body)
 
         return HTTPRequest(code, body)
