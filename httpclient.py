@@ -38,7 +38,6 @@ class HTTPClient(object):
     # Get the Host, Port, and Path which will be stored in 'data' in that order
     def get_host_port(self,url):
         data = []
-        print "SDLFJSDF"
         url = url.split("/")
         if ':' in url[2]:
             #print url
