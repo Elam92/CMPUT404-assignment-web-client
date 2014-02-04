@@ -105,17 +105,15 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
+        # 0 is the Host, 1 is the Port, and 2 is the Path
         data = self.get_host_port(url)
         self.connect(data[0], data[1])
         
-        request = "GET " + data[2] + " HTTP/1.1\r\nHost: "+data[0]+":"+str(data[1])+"\r\nConnection: keep-alive\r\nContent-Type: text/html\r\n"
-
         if(args != None):
             args = urllib.urlencode(args)
-            request += 'Content-Length: %s \r\n' % (len(args))
-            request += "\r\n"  
-            request += args + "\r\n"
+            data[2] = data[2] + "?" + args
 
+        request = "GET " + data[2] + " HTTP/1.1\r\nHost: "+data[0]+":"+str(data[1])+"\r\nConnection: keep-alive\r\nContent-Type: text/html\r\n"
         request += "\r\n"
 
         #print "GET REQUEST IS HERE"
